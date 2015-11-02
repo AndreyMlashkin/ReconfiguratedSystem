@@ -6,7 +6,7 @@
 class ReconfigurationCalculator
 {
 public:
-    ReconfigurationCalculator(const QVector<int> _hosts, const QVector<int> _processes);
+    ReconfigurationCalculator(const QVector<int> &_hosts, const QVector<int> &_processes);
 
     QVector <int> possibleConfiguration() const;
     QVector <QVector<int> > allPossibleConfigurations();
