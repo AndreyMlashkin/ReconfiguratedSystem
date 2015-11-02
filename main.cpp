@@ -35,9 +35,12 @@ int main(int argc, char *argv[])
         processes << weght;
     }
 
-
     ReconfigurationCalculator calculator(hosts, processes);
-    qDebug() << calculator.possibleConfiguration();
+    auto ans = calculator.allPossibleConfigurations();
+    foreach (QVector<int> config, ans)
+    {
+        qDebug() << config;
+    }
 
     return a.exec();
 }

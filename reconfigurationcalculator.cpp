@@ -1,20 +1,42 @@
-#include <QStack>
+
 #include "reconfigurationcalculator.h"
 
-class ReconfigurationCalculatorPrivate
-{
-public:
-ReconfigurationCalculatorPrivate(const QVector<int>& _hosts, const QVector<int>& _processes)
+
+ReconfigurationCalculator::ReconfigurationCalculator(const QVector<int>& _hosts, const QVector<int>& _processes)
     : m_hosts(_hosts),
       m_processes(_processes),
       m_hostsRam(_hosts),
-      m_processesInHosts(),
+      m_processesInHostsStack(),
       m_currentProcess(0),
       m_currentHost(0)
 {}
 
-QVector<int> nextConfiguration()
+QVector<int> ReconfigurationCalculator::possibleConfiguration()
 {
+    return nextConfiguration();
+}
+
+QVector<QVector<int> > ReconfigurationCalculator::allPossibleConfigurations()
+{
+    resetNext();
+
+    QVector<QVector<int> > ans;
+    forever
+    {
+        const QVector<int> configuration = nextConfiguration();
+        if(configuration.isEmpty())
+            break;
+        ans << configuration;
+
+    }
+    return ans;
+}
+
+QVector<int> ReconfigurationCalculator::nextConfiguration()
+{
+    if(!m_processesInHostsStack.isEmpty())
+        popProcess();
+
     while(m_currentProcess < m_processes.size())
     {
         while(m_currentHost < m_hostsRam.size())
@@ -24,97 +46,46 @@ QVector<int> nextConfiguration()
 
             if(hostRam >= processRam)
             {
-                // push process
-                m_hostsRam[m_currentHost] -= processRam;
-                m_processesInHosts << m_currentHost;
+                pushProcess();
                 break;
             }
             ++m_currentHost;
         }
-        bool placeForProcessIsFound = m_processesInHosts.size() - 1 == m_currentProcess;
+        bool placeForProcessIsFound = m_processesInHostsStack.size() - 1 == m_currentProcess;
         if(placeForProcessIsFound)
             m_currentHost = 0; // go to the next process
-        else if(!m_processesInHosts.isEmpty())
+        else if(!m_processesInHostsStack.isEmpty())
         {
-            // pop process
-            m_currentProcess = m_processesInHosts.size() - 1;
-            m_currentHost = m_processesInHosts.back();
-            m_processesInHosts.pop_back();
-            m_hostsRam[m_currentHost] += m_processes.at(m_currentProcess);
-            ++m_currentHost;
+            popProcess();
             continue;
         }
         else
             return QVector<int>();
         ++m_currentProcess;
     }
-    return m_processesInHosts;
+    return m_processesInHostsStack;
 }
 
-private:
-    const QVector<int> m_hosts;
-    const QVector<int> m_processes;
-
-    QVector<int> m_hostsRam;
-    QVector<int> m_processesInHosts;
-    int m_currentProcess;
-    int m_currentHost;
-};
-
-
-ReconfigurationCalculator::ReconfigurationCalculator(const QVector<int>& _hosts, const QVector<int>& _processes)
-    : m_hosts(_hosts),
-      m_processes(_processes)
-{}
-
-QVector<int> ReconfigurationCalculator::possibleConfiguration() const
+void ReconfigurationCalculator::resetNext()
 {
-/*    QVector<int> processesInHosts;
-    QVector<int> hostsRam = m_hosts;
-
-    int i = 0;  // current process
-    int j = 0;  // current host
-
-    while(i < m_processes.size())
-    {
-        while(j < hostsRam.size())
-        {
-            int processRam = m_processes.at(i);
-            int hostRam = hostsRam.at(j);
-
-            if(hostRam >= processRam)
-            {
-                // push process
-                hostsRam[j] -= processRam;
-                processesInHosts << j;
-                break;
-            }
-            ++j;
-        }
-        bool placeForProcessIsFound = processesInHosts.size() - 1 == i;
-        if(placeForProcessIsFound)
-            j = 0; // go to the next process
-        else if(!processesInHosts.isEmpty())
-        {
-            // pop process
-            i = processesInHosts.size() - 1;
-            j = processesInHosts.back();
-            processesInHosts.pop_back();
-            hostsRam[j] += m_processes.at(i);
-            ++j;
-            continue;
-        }
-        else
-            return QVector<int>();
-
-        ++i;
-    }
-    return processesInHosts;*/
-    ReconfigurationCalculatorPrivate pCalc(m_hosts, m_processes);
-    return pCalc.nextConfiguration();
+    m_hostsRam = m_hosts;
+    m_processesInHostsStack.resize(0);
+    m_currentProcess = 0;
+    m_currentHost = 0;
 }
 
-QVector<QVector<int> > ReconfigurationCalculator::allPossibleConfigurations()
+void ReconfigurationCalculator::pushProcess()
 {
+    int processRam = m_processes.at(m_currentProcess);
+    m_hostsRam[m_currentHost] -= processRam;
+    m_processesInHostsStack << m_currentHost;
+}
 
+void ReconfigurationCalculator::popProcess()
+{
+    m_currentProcess = m_processesInHostsStack.size() - 1;
+    m_currentHost = m_processesInHostsStack.back();
+    m_processesInHostsStack.pop_back();
+    m_hostsRam[m_currentHost] += m_processes.at(m_currentProcess);
+    ++m_currentHost;
 }
